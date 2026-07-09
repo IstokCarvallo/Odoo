@@ -1,0 +1,151 @@
+# ========================================
+# Python
+# ========================================
+
+__pycache__/
+*.py[cod]
+*$py.class
+*.pyd
+*.so
+
+# Distribución / empaquetado
+build/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# ========================================
+# Entornos virtuales
+# ========================================
+
+.venv/
+venv/
+ENV/
+env/
+
+# ========================================
+# Variables de entorno
+# ========================================
+
+.env
+.env.*
+!.env.example
+
+# ========================================
+# Configuración local
+# ========================================
+
+config.local.*
+settings.local.*
+
+# ========================================
+# Logs
+# ========================================
+
+logs/
+log/
+*.log
+
+# ========================================
+# Archivos temporales
+# ========================================
+
+tmp/
+temp/
+*.tmp
+*.bak
+*.swp
+*.swo
+
+# ========================================
+# Cache
+# ========================================
+
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.cache/
+.coverage
+coverage.xml
+htmlcov/
+
+# ========================================
+# Jupyter
+# ========================================
+
+.ipynb_checkpoints/
+
+# ========================================
+# VS Code
+# ========================================
+
+.vscode/*
+!.vscode/settings.json
+!.vscode/extensions.json
+!.vscode/launch.json
+!.vscode/tasks.json
+
+# ========================================
+# PyCharm
+# ========================================
+
+.idea/
+*.iml
+
+# ========================================
+# Sistema Operativo
+# ========================================
+
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ========================================
+# Archivos de salida del proceso ETL
+# ========================================
+
+output/
+exports/
+reports/
+data/output/
+data/temp/
+
+# ========================================
+# Bases de datos locales
+# ========================================
+
+*.sqlite
+*.sqlite3
+*.db
+
+# ========================================
+# Secrets
+# ========================================
+
+secrets.json
+credentials.json
+service_account.json
+
+# ========================================
+# Azure / AWS
+# ========================================
+
+.azure/
+.aws/
+
+# ========================================
+# Archivos de profiling
+# ========================================
+
+.prof
+.profraw
