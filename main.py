@@ -1,12 +1,16 @@
 import xmlrpc.client 
 from pprint import pprint
 
+from config.settings import Settings
+from clients.odoo_client import OdooClient
+from tools.discover_models import discover_models
 
-# Credenciales con API Key
+
+# # Credenciales con API Key
 url = "https://rioblanco-prueba-34692340.dev.odoo.com/"  # SIN /odoo al final
 db = "rioblanco-prueba-34692340"
 username = "admin"  # El mismo usuario
-api_key = "74a8710f75bd17078d70c6280fae06af6485bd85"  # API Key del usuario
+api_key = "b122691c59cd77a7ed3eb6379a3d8285539804b7"  # API Key del usuario
 
 # Conectar a Odoo
 common = xmlrpc.client.ServerProxy(f'{url}/xmlrpc/2/common')
@@ -358,21 +362,40 @@ def print_contracts_simple(contracts):
         print(f"  Estado: {reg.get('estado', 'N/A')}")
         print("-" * 40)
 
+
+def main():
+    print("=" * 60)
+    print("ODDO PERSONAL")
+    print("=" * 60)
+
+    settings = Settings()
+
+    print()
+    print("Conectando a Odoo...")
+
+    client = OdooClient(settings.odoo)
+    client.connect()
+
+    print("Autenticación exitosa.")
+    discover_models(client)
+
 # Ejecutar
 if __name__ == "__main__":
-    print("=" * 60)
-    print("OBTENIENDO CONTRATOS CON CAMPOS SEPARADOS")
-    print("(RUT y nombres del empleado están en campos distintos)")
-    print("=" * 60)
+
+    main()
+    # print("=" * 60)
+    # print("OBTENIENDO CONTRATOS CON CAMPOS SEPARADOS")
+    # print("(RUT y nombres del empleado están en campos distintos)")
+    # print("=" * 60)
  
-    # Obtener contratos
-    contracts = get_contracts_with_all_details(limit=10)
+    # # Obtener contratos
+    # contracts = get_contracts_with_all_details(limit=10)
    
-    if contracts:
-        # Mostrar versión simple con los campos requeridos
-        # print_contracts_simple(contracts)
+    # if contracts:
+    #     # Mostrar versión simple con los campos requeridos
+    #     # print_contracts_simple(contracts)
        
-        # Opcional: Mostrar versión detallada
-        print_contracts(contracts)
-    else:
-        print("No se encontraron contratos")
+    #     # Opcional: Mostrar versión detallada
+    #     print_contracts(contracts)
+    # else:
+    #     print("No se encontraron contratos")

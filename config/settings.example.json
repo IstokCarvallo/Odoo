@@ -1,0 +1,16 @@
+{
+    "odoo": {
+        "url": "https://miempresa.odoo.com",
+        "database": "miempresa",
+        "username": "admin",
+        "api_key": "API_KEY"
+    },
+
+    "sqlserver": {
+        "server": "SERVIDOR",
+        "database": "ERP",
+        "trusted_connection": true,
+        "user": "",
+        "password": ""
+    }
+}
