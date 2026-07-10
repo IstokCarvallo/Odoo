@@ -382,20 +382,20 @@ def main():
 # Ejecutar
 if __name__ == "__main__":
 
-    main()
-    # print("=" * 60)
-    # print("OBTENIENDO CONTRATOS CON CAMPOS SEPARADOS")
-    # print("(RUT y nombres del empleado están en campos distintos)")
-    # print("=" * 60)
+    # main()
+    print("=" * 60)
+    print("OBTENIENDO CONTRATOS CON CAMPOS SEPARADOS")
+    print("(RUT y nombres del empleado están en campos distintos)")
+    print("=" * 60)
  
-    # # Obtener contratos
-    # contracts = get_contracts_with_all_details(limit=10)
+    # Obtener contratos
+    contracts = get_contracts_with_all_details(limit=10)
    
-    # if contracts:
-    #     # Mostrar versión simple con los campos requeridos
-    #     # print_contracts_simple(contracts)
+    if contracts:
+        # Mostrar versión simple con los campos requeridos
+        # print_contracts_simple(contracts)
        
-    #     # Opcional: Mostrar versión detallada
-    #     print_contracts(contracts)
-    # else:
-    #     print("No se encontraron contratos")
+        # Opcional: Mostrar versión detallada
+        print_contracts(contracts)
+    else:
+        print("No se encontraron contratos")
