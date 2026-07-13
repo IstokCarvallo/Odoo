@@ -3,6 +3,7 @@ from __future__ import annotations
 import logging
 import pyodbc
 
+from context.execution_context import ExecutionContext
 from models import StgOdooContrato
 
 logger = logging.getLogger(__name__)
@@ -47,28 +48,22 @@ class SqlRepository:
         CentroCostoId,
         CentroCosto,
         FechaExtraccion,
-        ExecutionId,
-        HashRegistro
+        ExecutionId
     )
     VALUES
     (
-        ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
+        ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
     )
     """
 
-    def __init__(self, connection_string: str):
-
+    def __init__(self, connection_string: str, context: ExecutionContext) -> None:
         self._connection_string = connection_string
+        self._context = context
 
-    def save_snapshot(
-        self,
-        registros: list[StgOdooContrato]
-    ) -> None:
 
+    def save_snapshot(self, registros: list[StgOdooContrato]) -> None:
         if not registros:
-
             logger.warning("No existen registros para cargar.")
-
             return
 
         logger.info(
@@ -79,25 +74,17 @@ class SqlRepository:
         connection = pyodbc.connect(self._connection_string)
 
         try:
-
             cursor = connection.cursor()
-
             cursor.fast_executemany = True
-
             logger.info("Iniciando transacción...")
 
             connection.autocommit = False
-
             logger.info("Limpiando STG_OdooContrato...")
 
-            cursor.execute(
-                "TRUNCATE TABLE dbo.STG_OdooContrato"
-            )
+            cursor.execute("TRUNCATE TABLE dbo.STG_OdooContrato")
 
             rows = [
-
                 (
-
                     r.ContratoId,
                     r.NombreContrato,
                     r.Estado,
@@ -131,41 +118,23 @@ class SqlRepository:
 
                     r.FechaExtraccion,
 
-                    str(r.ExecutionId),
-
-                    r.HashRegistro,
+                    str(self._context.execution_id),
 
                 )
-
                 for r in registros
 
             ]
 
-            logger.info(
-                "Insertando registros..."
-            )
-
-            cursor.executemany(
-                self.INSERT_SQL,
-                rows
-            )
+            logger.info("Insertando registros...")
+            cursor.executemany(self.INSERT_SQL, rows)
 
             connection.commit()
-
-            logger.info(
-                "Carga Snapshot finalizada correctamente."
-            )
+            logger.info("Carga Snapshot finalizada correctamente.")
 
         except Exception:
-
-            logger.exception(
-                "Error durante la carga Snapshot."
-            )
-
+            logger.exception("Error durante la carga Snapshot.")
             connection.rollback()
-
             raise
 
         finally:
-
             connection.close()

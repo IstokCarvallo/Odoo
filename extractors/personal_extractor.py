@@ -14,42 +14,68 @@ from uuid import UUID, uuid4
 
 from clients.odoo_client import OdooClient
 from models import StgOdooContrato
+from context.execution_context import ExecutionContext
 
 
 class PersonalExtractor:
-
-    def __init__(self, client: OdooClient):
-
+    def __init__(self, client: OdooClient, context: ExecutionContext):
         self._client = client
+        self._context = context
+
+
+    @staticmethod
+    def _value(value):
+        if value is False:
+            return None
+
+        if value == "":
+            return None
+
+        return value
+    
+    
+    @staticmethod
+    def _date(value):
+        if value is False:
+            return None
+
+        if value == "":
+            return None
+
+        return value
+    
 
     def extract(self, limit: int | None = None) -> tuple[list[StgOdooContrato], UUID]:
-
         execution_id = uuid4()
-        fecha_extraccion = datetime.now()
+        fecha_extraccion = self._context.started_at
     
         # -------------------------------------------------------------
         # Obtener contratos
         # -------------------------------------------------------------
 
+        kwargs = {
+            "fields": [
+                "id",
+                "name",
+                "state",
+                "employee_id",
+                "department_id",
+                "company_id",
+                "resource_calendar_id",
+                "date_start",
+                "date_end",
+            ],
+            "order": "id desc",
+        }
+
+        if limit is not None:
+            kwargs["limit"] = limit
+
         contracts = self._client.execute(
             "hr.contract",
             "search_read",
             [[("state", "in", ["open", "close"])]],
-            {
-                "fields": [
-                    "id",
-                    "name",
-                    "state",
-                    "employee_id",
-                    "department_id",
-                    "company_id",
-                    "resource_calendar_id",
-                    "date_start",
-                    "date_end",
-                ],
-                "order": "id desc",
-                "limit": limit,
-            },
+            kwargs,
         )
 
         if not contracts:
@@ -170,7 +196,6 @@ class PersonalExtractor:
         companies: dict[int, dict] = {}
 
         if company_ids:
-
             company_data = self._client.execute(
                 "res.company",
                 "search_read",
@@ -190,7 +215,6 @@ class PersonalExtractor:
             }
 
             for company in company_data:
-
                 parent = company.get("parent_id")
 
                 if parent:
@@ -201,7 +225,6 @@ class PersonalExtractor:
         # -------------------------------------------------------------
 
         if parent_company_ids:
-
             parent_data = self._client.execute(
                 "res.company",
                 "search_read",
@@ -224,7 +247,6 @@ class PersonalExtractor:
         calendars: dict[int, dict] = {}
 
         if calendar_ids:
-
             calendar_data = self._client.execute(
                 "resource.calendar",
                 "search_read",
@@ -249,7 +271,6 @@ class PersonalExtractor:
         registros: list[StgOdooContrato] = []
 
         for contract in contracts:
-
             # ---------------------------------------------------------
             # Empleado
             # ---------------------------------------------------------
@@ -318,39 +339,35 @@ class PersonalExtractor:
                 # ---------------------------------------------
                 # Contrato
                 # ---------------------------------------------
-
                 ContratoId=contract["id"],
                 NombreContrato=contract.get("name"),
                 Estado=contract.get("state"),
 
-                FechaInicio=contract.get("date_start"),
-                FechaTermino=contract.get("date_end"),
+                FechaInicio=self._date(contract.get("date_start")),
+                FechaTermino=self._date(contract.get("date_end")),
 
                 # ---------------------------------------------
                 # Empleado
                 # ---------------------------------------------
-
                 EmpleadoId=employee_id,
 
-                Rut=employee.get("identification_id"),
+                Rut=self._value(employee.get("identification_id")),
 
-                PrimerNombre=employee.get("firstname"),
-                SegundoNombre=employee.get("middle_name"),
+                PrimerNombre=self._value(employee.get("firstname")),
+                SegundoNombre=self._value(employee.get("middle_name")),
 
-                ApellidoPaterno=employee.get("last_name"),
-                ApellidoMaterno=employee.get("mothers_name"),
+                ApellidoPaterno=self._value(employee.get("last_name")),
+                ApellidoMaterno=self._value(employee.get("mothers_name")),
 
                 # ---------------------------------------------
                 # Departamento
                 # ---------------------------------------------
-
                 DepartamentoId=department_id,
                 Departamento=department.get("name"),
 
                 # ---------------------------------------------
                 # Empresa
                 # ---------------------------------------------
-
                 EmpresaId=company_id,
                 Empresa=company.get("name"),
 
@@ -360,7 +377,6 @@ class PersonalExtractor:
                 # ---------------------------------------------
                 # Calendario
                 # ---------------------------------------------
-
                 CalendarioId=calendar_id,
                 Calendario=calendar.get("name"),
 
@@ -368,18 +384,15 @@ class PersonalExtractor:
                 # Centro de costo
                 # (Pendiente de identificar el modelo en Odoo)
                 # -------------------------------------------------
-
                 CentroCostoId=None,
                 CentroCosto=None,
 
                 # -------------------------------------------------
                 # Metadatos ETL
                 # -------------------------------------------------
-
                 FechaExtraccion=fecha_extraccion,
                 ExecutionId=execution_id,
             )
-
             registros.append(registro)
 
         return registros
