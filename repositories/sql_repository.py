@@ -47,12 +47,14 @@ class SqlRepository:
         Calendario,
         CentroCostoId,
         CentroCosto,
+        CargoId,
+        Cargo,
         FechaExtraccion,
         ExecutionId
     )
     VALUES
     (
-        ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
+        ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
     )
     """
 
@@ -115,6 +117,9 @@ class SqlRepository:
 
                     r.CentroCostoId,
                     r.CentroCosto,
+
+                    r.CargoId,
+                    r.Cargo,
 
                     r.FechaExtraccion,
 

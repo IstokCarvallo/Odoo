@@ -47,7 +47,6 @@ class PersonalExtractor:
 
     def extract(self, limit: int | None = None) -> tuple[list[StgOdooContrato], UUID]:
         execution_id = uuid4()
-        fecha_extraccion = self._context.started_at
     
         # -------------------------------------------------------------
         # Obtener contratos
@@ -90,9 +89,9 @@ class PersonalExtractor:
         company_ids: set[int] = set()
         calendar_ids: set[int] = set()
         parent_company_ids: set[int] = set()
+        job_ids: set[int] = set()
 
         for contract in contracts:
-
             employee = contract.get("employee_id")
 
             if employee:
@@ -120,7 +119,6 @@ class PersonalExtractor:
         employees: dict[int, dict] = {}
 
         if employee_ids:
-
             employee_data = self._client.execute(
                 "hr.employee",
                 "search_read",
@@ -135,6 +133,7 @@ class PersonalExtractor:
                         "mothers_name",
                         "company_id",
                         "department_id",
+                        "job_id",  
                     ]
                 },
             )
@@ -145,7 +144,6 @@ class PersonalExtractor:
             }
 
             for employee in employee_data:
-
                 company = employee.get("company_id")
 
                 if company:
@@ -156,6 +154,34 @@ class PersonalExtractor:
                 if department:
                     department_ids.add(department[0])
 
+                job = employee.get("job_id")
+
+                if job:
+                   job_ids.add(job[0])
+
+        # -------------------------------------------------------------
+        # Cargos
+        # -------------------------------------------------------------
+        jobs: dict[int, dict] = {}
+
+        if job_ids:
+            job_data = self._client.execute(
+                "hr.job",
+                "search_read",
+                [[("id", "in", list(job_ids))]],
+                {
+                    "fields": [
+                        "id",
+                        "name"
+                    ]
+                },
+            )
+
+            jobs = {
+                job["id"]: job
+                for job in job_data
+            }          
+        
         # -------------------------------------------------------------
         # Departamentos
         # -------------------------------------------------------------
@@ -163,7 +189,6 @@ class PersonalExtractor:
         departments: dict[int, dict] = {}
 
         if department_ids:
-
             department_data = self._client.execute(
                 "hr.department",
                 "search_read",
@@ -183,7 +208,6 @@ class PersonalExtractor:
             }
 
             for department in department_data:
-
                 company = department.get("company_id")
 
                 if company:
@@ -282,6 +306,18 @@ class PersonalExtractor:
             )
 
             employee = employees.get(employee_id, {})
+            
+            # ---------------------------------------------------------
+            # Cargo
+            # ---------------------------------------------------------
+
+            job = {}
+
+            if employee.get("job_id"):
+                job = jobs.get(
+                    employee["job_id"][0],
+                    {}
+                )
 
             # ---------------------------------------------------------
             # Departamento del contrato
@@ -388,9 +424,15 @@ class PersonalExtractor:
                 CentroCosto=None,
 
                 # -------------------------------------------------
+                # Cargo
+                # -------------------------------------------------
+                CargoId=job.get("id"),
+                Cargo=job.get("name"),
+
+                # -------------------------------------------------
                 # Metadatos ETL
                 # -------------------------------------------------
-                FechaExtraccion=fecha_extraccion,
+                FechaExtraccion=self._context.started_at,
                 ExecutionId=execution_id,
             )
             registros.append(registro)
