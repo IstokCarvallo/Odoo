@@ -52,10 +52,12 @@ class StgOdooContrato:
     # ------------------------------------------------------------------
 
     EmpresaId: int
-    Empresa: str
+    Empresa: str | None
+    EmpresaRut: str | None
 
     EmpresaPadreId: int | None
     EmpresaPadre: str | None
+    EmpresaPadreRut: str | None
 
     # ------------------------------------------------------------------
     # Calendario

@@ -1,19 +1,18 @@
-# ETL Contratos → Odoo
-
 <div align="center">
 
-# 📦 ETL de Integración de Contratos hacia Odoo
+# 📦 ETL Odoo → SQL Server
 
-### Extracción • Transformación • Validación • Persistencia
+### Sincronización Snapshot de Contratos de Personal
 
-ETL desarrollado en **Python** para extraer información contractual desde el sistema origen, normalizarla y generar una estructura de datos preparada para su carga en **Odoo ERP**.
+Extracción de información contractual desde **Odoo ERP** mediante **XML-RPC**, enriquecimiento de datos organizacionales y carga Snapshot hacia **SQL Server** para procesos corporativos de integración.
 
 ---
 
-![Python](https://img.shields.io/badge/Python-3.11+-3776AB?style=for-the-badge&logo=python&logoColor=white)
-![SQL Server](https://img.shields.io/badge/SQL%20Server-Database-CC2927?style=for-the-badge&logo=microsoftsqlserver&logoColor=white)
-![Odoo](https://img.shields.io/badge/Odoo-ERP-714B67?style=for-the-badge&logo=odoo&logoColor=white)
-![ETL](https://img.shields.io/badge/Arquitectura-ETL-0A66C2?style=for-the-badge)
+![Python](https://img.shields.io/badge/Python-3.13+-3776AB?style=for-the-badge&logo=python&logoColor=white)
+![Odoo](https://img.shields.io/badge/Odoo-17+-714B67?style=for-the-badge&logo=odoo&logoColor=white)
+![SQL Server](https://img.shields.io/badge/SQL_Server-Database-CC2927?style=for-the-badge&logo=microsoftsqlserver&logoColor=white)
+![XML-RPC](https://img.shields.io/badge/XML--RPC-API-blue?style=for-the-badge)
+![Architecture](https://img.shields.io/badge/Architecture-Clean_ETL-success?style=for-the-badge)
 
 </div>
 
@@ -21,28 +20,19 @@ ETL desarrollado en **Python** para extraer información contractual desde el si
 
 # Descripción
 
-Este proyecto implementa un proceso **ETL (Extract, Transform & Load)** cuyo objetivo es obtener la información contractual de colaboradores desde un sistema origen, transformarla según las reglas de negocio definidas y almacenarla en una estructura preparada para su posterior carga hacia **Odoo**.
+Este proyecto implementa un proceso **ETL Snapshot** para sincronizar la información contractual del módulo de Recursos Humanos de **Odoo ERP** hacia una tabla de staging en **SQL Server**.
 
-El proyecto fue diseñado bajo los siguientes principios:
+El proceso realiza la extracción mediante **XML-RPC**, consulta los catálogos relacionados para enriquecer la información y construye un modelo tipado (`StgOdooContrato`) listo para su persistencia.
 
-- Arquitectura por capas
+La arquitectura fue diseñada priorizando:
+
 - Separación de responsabilidades
 - Código mantenible
-- Modelos tipados
-- Alta trazabilidad
-- Fácil incorporación de nuevos procesos ETL
-
----
-
-# Objetivos
-
-- Extraer información desde SQL Server.
-- Separar completamente extracción y transformación.
-- Aplicar reglas de negocio centralizadas.
-- Normalizar los datos.
-- Validar consistencia.
-- Persistir información preparada para Odoo.
-- Facilitar futuras integraciones.
+- Bajo acoplamiento
+- Alta cohesión
+- Tipado fuerte mediante Dataclasses
+- Logging completo por ejecución
+- Facilidad para incorporar nuevos ETL
 
 ---
 
@@ -51,21 +41,54 @@ El proyecto fue diseñado bajo los siguientes principios:
 ```mermaid
 flowchart LR
 
-A[(SQL Server)] --> B[Extractor]
+A[Odoo ERP]
 
-B --> C[Modelo Contrato]
+A --> B[XML-RPC]
 
-C --> D[Transformador]
+B --> C[OdooClient]
 
-D --> E[Reglas de Negocio]
+C --> D[PersonalExtractor]
 
-E --> F[Normalización]
+D --> E[StgOdooContrato]
 
-F --> G[Modelo STG Odoo]
+E --> F[SqlRepository]
 
-G --> H[(Tabla Staging)]
+F --> G[(SQL Server)]
 
-H --> I[Proceso de Carga Odoo]
+```
+
+---
+
+# Flujo de Ejecución
+
+```mermaid
+sequenceDiagram
+
+participant Main
+participant Client
+participant Extractor
+participant Repository
+participant SQL
+
+Main->>Client: connect()
+
+Client-->>Main: Conexión
+
+Main->>Extractor: extract()
+
+Extractor->>Client: search_read()
+
+Client-->>Extractor: Datos Odoo
+
+Extractor-->>Main: list[StgOdooContrato]
+
+Main->>Repository: save_snapshot()
+
+Repository->>SQL: DELETE Snapshot
+
+Repository->>SQL: INSERT
+
+SQL-->>Repository: Commit
 ```
 
 ---
@@ -73,32 +96,30 @@ H --> I[Proceso de Carga Odoo]
 # Arquitectura del Proyecto
 
 ```text
-etl_odoo_contratos/
-
+.
+│
+├── clients/
+│   └── odoo_client.py
 │
 ├── config/
-│     Configuración
+│   ├── settings.py
+│   └── settings.json
 │
-├── database/
-│     Conexión SQL Server
+├── context/
+│   └── execution_context.py
 │
 ├── extractors/
-│     Extracción de datos
-│
-├── transformers/
-│     Reglas de transformación
+│   └── personal_extractor.py
 │
 ├── models/
-│     Modelos de dominio
+│   └── stg_odoo_contrato.py
 │
 ├── repositories/
-│     Persistencia
+│   └── sql_repository.py
 │
-├── services/
-│     Orquestación ETL
-│
-├── utils/
-│     Utilidades
+├── tools/
+│   ├── discover_model.py
+│   └── discover_models.py
 │
 ├── logs/
 │
@@ -109,261 +130,239 @@ etl_odoo_contratos/
 
 ---
 
-# Flujo ETL
+# Flujo Interno del Extractor
 
 ```mermaid
 flowchart TD
 
-Inicio
+A[extract()]
 
-Inicio --> Extraer
+A --> B[_load_contracts]
 
-Extraer --> Validar
+B --> C[_collect_ids]
 
-Validar --> Transformar
+C --> D[_load_catalog]
 
-Transformar --> Normalizar
+D --> EMP[Employees]
 
-Normalizar --> ConstruirModelo
+D --> DEP[Departments]
 
-ConstruirModelo --> Guardar
+D --> JOB[Jobs]
 
-Guardar --> Fin
+D --> COM[Companies]
+
+D --> CAL[Calendars]
+
+EMP --> ROW
+
+DEP --> ROW
+
+JOB --> ROW
+
+COM --> ROW
+
+CAL --> ROW
+
+ROW[_build_row()]
+
+ROW --> MODEL[StgOdooContrato]
+
+MODEL --> END[List]
 ```
 
 ---
 
-# Flujo de Datos
+# Componentes
 
-```mermaid
-sequenceDiagram
+## OdooClient
 
-participant SQL as SQL Server
-participant EXT as Extractor
-participant TRA as Transformer
-participant REP as Repository
-participant STG as Tabla Staging
+Responsabilidades
 
-SQL->>EXT: Consulta contratos
-
-EXT->>TRA: ContratoOrigen
-
-TRA->>TRA: Reglas de negocio
-
-TRA->>REP: StgOdooContrato
-
-REP->>STG: INSERT
-```
+- Conexión XML-RPC
+- Autenticación
+- Ejecución genérica de métodos Odoo
+- Sin reglas de negocio
 
 ---
 
-# Capas del Sistema
+## PersonalExtractor
 
-## Extractor
+Responsabilidades
 
-Responsabilidades:
+- Extraer contratos
+- Obtener catálogos relacionados
+- Resolver relaciones
+- Construir modelos tipados
 
-- Ejecutar consultas SQL.
-- Leer información origen.
-- Mapear registros.
-- No aplica reglas de negocio.
-
-Salida:
-
-```
-ContratoOrigen
-```
+No realiza persistencia.
 
 ---
 
-## Transformer
+## SqlRepository
 
-Responsabilidades:
+Responsabilidades
 
-- Normalización.
-- Conversión de tipos.
-- Reglas de negocio.
-- Limpieza de datos.
-- Construcción del modelo destino.
+- Carga Snapshot
+- Transacciones SQL Server
+- Persistencia
+- Manejo de errores
 
-Salida:
-
-```
-StgOdooContrato
-```
+No contiene lógica de negocio.
 
 ---
 
-## Repository
+## ExecutionContext
 
-Responsabilidades:
+Centraliza la información de cada ejecución.
 
-- Persistencia.
-- Insert.
-- Update.
-- Delete.
-- Transacciones.
+Incluye:
 
-No contiene reglas de negocio.
-
----
-
-## Models
-
-Contiene únicamente objetos de dominio.
-
-Ejemplo:
-
-```
-ContratoOrigen
-
-↓
-
-StgOdooContrato
-```
+- ExecutionId
+- Fecha de inicio
+- Archivo de Log
+- Información compartida durante la ejecución
 
 ---
 
-# Flujo de Objetos
+## StgOdooContrato
 
-```mermaid
-classDiagram
+Modelo tipado que representa un registro listo para persistir.
 
-ContratoOrigen --> StgOdooContrato
+Contiene información como:
 
-class ContratoOrigen{
-rut
-nombre
-apellido
-fecha_inicio
-fecha_fin
-cargo
-empresa
-}
-class StgOdooContrato{
-employee_id
-contract_name
-date_start
-date_end
-company_id
-job_position
-}
-```
+- Contrato
+- Empleado
+- Rut
+- Nombres
+- Apellidos
+- Cargo
+- Departamento
+- Empresa
+- Empresa Padre
+- Rut Empresa
+- Rut Empresa Padre
+- Calendario
+- Metadata ETL
 
 ---
 
-# Principios de Diseño
+# Snapshot
 
-El proyecto sigue principios de ingeniería de software:
-
-- Single Responsibility Principle (SRP)
-- Separation of Concerns
-- Alta Cohesión
-- Bajo Acoplamiento
-- Código Tipado
-- Arquitectura por capas
-- Componentes reutilizables
-
----
-
-# Ciclo de Ejecución
-
-```mermaid
-stateDiagram-v2
-
-[*] --> Inicialización
-
-Inicialización --> ConexiónBD
-
-ConexiónBD --> Extracción
-
-Extracción --> Transformación
-
-Transformación --> Validación
-
-Validación --> Persistencia
-
-Persistencia --> Finalizado
-
-Finalizado --> [*]
-```
-
----
-
-# Responsabilidad de cada componente
-
-| Componente | Responsabilidad |
-|------------|-----------------|
-| Config | Parámetros del sistema |
-| Database | Conexiones SQL |
-| Extractors | Obtención de datos |
-| Models | Objetos de dominio |
-| Transformers | Reglas de negocio |
-| Repositories | Persistencia |
-| Services | Orquestación |
-| Utils | Funciones auxiliares |
-| Logs | Registro de ejecución |
-
----
-
-# Modelo de Ejecución
+Cada ejecución realiza una sincronización completa.
 
 ```mermaid
 flowchart LR
 
-main.py
+Inicio
 
-main.py --> ETLService
+Inicio --> DELETE
 
-ETLService --> Extractor
+DELETE --> INSERT
 
-Extractor --> Transformer
+INSERT --> Commit
 
-Transformer --> Repository
-
-Repository --> SQL
+Commit --> Fin
 ```
+
+La tabla staging siempre representa el estado actual existente en Odoo.
+
+---
+
+# Logging
+
+Cada ejecución genera un archivo independiente.
+
+Ejemplo
+
+```
+logs/
+
+etl_20260713_145822.log
+etl_20260713_154012.log
+etl_20260714_080501.log
+```
+
+Cada log registra:
+
+- Inicio
+- ExecutionId
+- Conexión
+- Cantidad de registros
+- Errores
+- Tiempo de ejecución
+
+---
+
+# Herramientas de Desarrollo
+
+El proyecto incorpora herramientas para inspeccionar modelos de Odoo.
+
+Actualmente disponibles:
+
+- DiscoverModel
+- DiscoverModels
+
+Permiten:
+
+- Consultar modelos
+- Descubrir campos
+- Inspeccionar registros
+- Detectar campos personalizados
+- Explorar nuevos catálogos
 
 ---
 
 # Características Técnicas
 
-- Arquitectura ETL por capas
-- Modelos tipados mediante clases
-- Separación entre extracción y transformación
-- Reglas de negocio desacopladas
-- Persistencia independiente
-- Fácil mantenimiento
-- Escalable para nuevos procesos
-- Logging centralizado
-- Preparado para pruebas unitarias
+- Arquitectura ETL desacoplada
+- Cliente XML-RPC reutilizable
+- Dataclasses
+- Logging por ejecución
+- ExecutionContext
+- Tipado fuerte
+- Snapshot transaccional
+- SQL Server
+- XML-RPC
+- Código preparado para nuevos ETL
 
 ---
 
-# Escalabilidad
+# Principios de Diseño
 
-La arquitectura permite agregar nuevos procesos ETL sin modificar los existentes.
+- Single Responsibility Principle (SRP)
+- Separation of Concerns
+- Clean Architecture
+- Alta Cohesión
+- Bajo Acoplamiento
+- Reutilización
+- Tipado Explícito
+- Código mantenible
 
-Ejemplo:
+---
+
+# Extensibilidad
+
+La arquitectura fue diseñada para reutilizar la infraestructura en nuevos procesos.
+
+Ejemplo
 
 ```text
 extractors/
-    contratos.py
-    empleados.py
-    cargos.py
 
-transformers/
-    contrato_transformer.py
-    empleado_transformer.py
-    cargo_transformer.py
-
-repositories/
-    contrato_repository.py
-    empleado_repository.py
-    cargo_repository.py
+personal_extractor.py
+centro_costo_extractor.py
+cargo_extractor.py
+empleado_extractor.py
+vacaciones_extractor.py
 ```
 
-Cada proceso mantiene su propia lógica, reutilizando la infraestructura común.
+Todos reutilizan:
+
+- OdooClient
+- SqlRepository
+- ExecutionContext
+- Logging
+- Configuración
 
 ---
 
@@ -371,24 +370,14 @@ Cada proceso mantiene su propia lógica, reutilizando la infraestructura común.
 
 | Tecnología | Uso |
 |------------|-----|
-| Python 3.11+ | Desarrollo |
-| SQL Server | Base de datos origen |
-| ODBC Driver | Conectividad |
+| Python 3.13 | Desarrollo |
+| XML-RPC | Comunicación con Odoo |
+| Odoo ERP | Sistema origen |
+| SQL Server | Base de datos destino |
+| pyodbc | Acceso SQL Server |
 | Dataclasses | Modelos |
 | Logging | Trazabilidad |
 | Mermaid | Diagramas |
-
----
-
-# Convenciones
-
-- Una clase por archivo.
-- Nombres descriptivos.
-- Sin lógica SQL en los transformadores.
-- Sin reglas de negocio en los repositories.
-- Tipado explícito.
-- Logging en cada etapa crítica.
-- Separación clara entre dominio y persistencia.
 
 ---
 
@@ -397,31 +386,40 @@ Cada proceso mantiene su propia lógica, reutilizando la infraestructura común.
 | Módulo | Estado |
 |---------|--------|
 | Configuración | ✅ |
-| Conexión BD | ✅ |
-| Extractor | ✅ |
-| Modelos | ✅ |
-| Transformadores | 🚧 |
-| Persistencia | 🚧 |
-| Carga Odoo | ⏳ |
+| OdooClient | ✅ |
+| PersonalExtractor | ✅ |
+| Catálogos relacionados | ✅ |
+| Dataclass | ✅ |
+| Snapshot SQL | ✅ |
+| Logging | ✅ |
+| ExecutionContext | ✅ |
+| Herramientas Odoo | ✅ |
+| Nuevos ETL | 🚧 |
 
 ---
 
 # Roadmap
 
-- [x] Arquitectura base
+- [x] Cliente XML-RPC genérico
 - [x] Extractor de contratos
-- [x] Modelos tipados
-- [ ] Transformaciones
-- [ ] Persistencia en Staging
-- [ ] Validaciones de negocio
-- [ ] Integración completa con Odoo
-- [ ] Pruebas unitarias
-- [ ] Pipeline CI/CD
+- [x] Arquitectura desacoplada
+- [x] Snapshot SQL Server
+- [x] Logging por ejecución
+- [x] ExecutionContext
+- [x] Herramientas de inspección Odoo
+- [ ] ETL de Centros de Costo
+- [ ] ETL de Empleados
+- [ ] ETL de Cargos
+- [ ] ETL de Calendarios
+- [ ] Pruebas Unitarias
+- [ ] Integración CI/CD
 
 ---
 
 # Autor
 
-**Proyecto ETL Odoo**
+**ETL Odoo → SQL Server**
 
-Arquitectura orientada a procesos ETL empresariales con foco en mantenibilidad, trazabilidad y escalabilidad.
+Jefe Proyectos TI - RIOblanco SPA - Istok Carvallo
+
+Arquitectura desarrollada para procesos corporativos de integración entre **Odoo ERP** y plataformas empresariales, priorizando mantenibilidad, trazabilidad, escalabilidad y reutilización.

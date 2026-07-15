@@ -229,9 +229,11 @@ class PersonalExtractor:
                 # ---------------------------------------------
                 EmpresaId=company.get("id"),
                 Empresa=company.get("name"),
+                EmpresaRut=company.get("vat"),
 
                 EmpresaPadreId=parent_company.get("id"),
                 EmpresaPadre=parent_company.get("name"),
+                EmpresaPadreRut=parent_company.get("vat"),
 
                 # ---------------------------------------------
                 # Calendario
@@ -361,6 +363,7 @@ class PersonalExtractor:
             [
                 "id",
                 "name",
+                "vat",
                 "parent_id",
             ],
         )
@@ -378,6 +381,7 @@ class PersonalExtractor:
             [
                 "id",
                 "name",
+                "vat",
             ],
         )
 

@@ -6,10 +6,14 @@ from pathlib import Path
 from datetime import datetime
 
 from clients.odoo_client import OdooClient
+from config import settings
 from config.settings import Settings
 from extractors.personal_extractor import PersonalExtractor
 from repositories.sql_repository import SqlRepository
 from context.execution_context import ExecutionContext
+
+# from tools.discover_models import discover_models
+# from tools.discover_model import DiscoverModel
 
 def configure_logging(context: ExecutionContext) -> logging.Logger:
     """
@@ -22,6 +26,8 @@ def configure_logging(context: ExecutionContext) -> logging.Logger:
     log_dir.mkdir(exist_ok=True)
     log_name = context.started_at.strftime("etl_%Y%m%d_%H%M%S.log")
     log_file = log_dir / log_name
+
+    context.log_file = log_file
 
     formatter = logging.Formatter(
         "%(asctime)s | %(levelname)-8s | %(message)s",
@@ -93,4 +99,10 @@ def main() -> int:
 
 
 if __name__ == "__main__":
+    # settings = Settings()
+    # client = OdooClient(settings.odoo)
+    # client.connect()
+    # #discover_models(client)
+    # tool = DiscoverModel(client)
+    # tool.inspect("res.company")
     sys.exit(main())

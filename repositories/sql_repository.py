@@ -41,8 +41,10 @@ class SqlRepository:
         Departamento,
         EmpresaId,
         Empresa,
+        EmpresaRut,
         EmpresaPadreId,
         EmpresaPadre,
+        EmpresaPadreRut,
         CalendarioId,
         Calendario,
         CentroCostoId,
@@ -54,7 +56,7 @@ class SqlRepository:
     )
     VALUES
     (
-        ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
+        ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
     )
     """
 
@@ -108,9 +110,11 @@ class SqlRepository:
 
                     r.EmpresaId,
                     r.Empresa,
+                    r.EmpresaRut,
 
                     r.EmpresaPadreId,
                     r.EmpresaPadre,
+                    r.EmpresaPadreRut,
 
                     r.CalendarioId,
                     r.Calendario,
