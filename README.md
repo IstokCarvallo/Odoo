@@ -132,43 +132,39 @@ SQL-->>Repository: Commit
 
 # Flujo Interno del Extractor
 
-```mermaid
 flowchart TD
 
-A[extract()]
+A["extract()"]
 
-A --> B[_load_contracts]
+A --> B["Cargar Contratos"]
 
-B --> C[_collect_ids]
+B --> C["Recolectar IDs"]
 
-C --> D[_load_catalog]
+C --> D["Cargar Catálogos"]
 
-D --> EMP[Employees]
+D --> E["Empleados"]
 
-D --> DEP[Departments]
+D --> F["Departamentos"]
 
-D --> JOB[Jobs]
+D --> G["Cargos"]
 
-D --> COM[Companies]
+D --> H["Empresas"]
 
-D --> CAL[Calendars]
+D --> I["Calendarios"]
 
-EMP --> ROW
+E --> J["Construir Registro"]
 
-DEP --> ROW
+F --> J
 
-JOB --> ROW
+G --> J
 
-COM --> ROW
+H --> J
 
-CAL --> ROW
+I --> J
 
-ROW[_build_row()]
+J --> K["StgOdooContrato"]
 
-ROW --> MODEL[StgOdooContrato]
-
-MODEL --> END[List]
-```
+K --> L["Lista de Registros"]
 
 ---
 
